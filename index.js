@@ -29,12 +29,9 @@ function carregarDados(nomeArquivo) {
   }
   return [];
 }
-function salvarDados(nomeArquivo, novosDados) {
-  const dadosAtuais = carregarDados(nomeArquivo);
-  const dadosAtualizados = [...dadosAtuais, ...novosDados];
-
-  fs.writeFileSync(nomeArquivo, JSON.stringify(dadosAtualizados, null, 2), 'utf8');
-}
+function salvarDados(nomeArquivo, dados) {
+    fs.writeFileSync(nomeArquivo, JSON.stringify(dados, null, 2), 'utf8');
+  }  
 
 
 function Menus() {
@@ -62,6 +59,7 @@ function Menus() {
                 removerCliente();
                 break;
             case "Sair":
+                limpar();0
                 console.log("Saindo...");
                 break;
             default:
@@ -82,7 +80,7 @@ function verificarECarregarJSON(caminhoArquivo) {
     if (fs.existsSync(caminhoArquivo)) {
       const conteudo = fs.readFileSync(caminhoArquivo, 'utf8').trim();
   
-      if (conteudo !== '') {
+      if (conteudo !== '' && conteudo !== '[]') {
         try {
             const dadus = JSON.parse(conteudo)
             console.log(JSON.stringify(dadus, null, 2));
@@ -94,35 +92,35 @@ function verificarECarregarJSON(caminhoArquivo) {
         }
       } else {
         limpar();
-        console.log(chalk.red('Arquivo existe, mas está vazio.'));
+        console.log(chalk.red('Arquivo existe, mas está vazio.\n'));
         return Menus();
       }
     } else {
         limpar();
-      console.log(chalk.red('Arquivo não encontrado.'));
+      console.log(chalk.red('Arquivo não encontrado.\n'));
       return Menus();
     }
   }
 
 function cadastrarCliente() {
     limpar();
-    console.log('===cadastro de clientes===');
+    console.log('===cadastro de clientes===\n');
     const nome_cliente = readline.question('Nome do Cliente: ').trim();
     if (nome_cliente === '') {
         limpar();
-        console.log(chalk.red('O nome não pode ser vazio!'));
+        console.log(chalk.red('O nome não pode ser vazio!\n'));
         return Menus();
     }
     const email_cliente = readline.questionEMail('Email do Cliente: ').trim();
     const numero_cliente = readline.questionInt('Numero do Cliente: ');
     if (email_cliente === '') {
         limpar();
-        console.log(chalk.red('O email não pode ser vazio!'));
+        console.log(chalk.red('O email não pode ser vazio!\n'));
         Menus();
     }
     if (isNaN(numero_cliente) || numero_cliente <= 0) {
         limpar();
-        console.log('Número inválido, digite um número válido!');
+        console.log('Número inválido, digite um número válido!\n');
         Menus();
     }
     const clientesExistentes = carregarDados('clientes.json'); 
@@ -133,7 +131,7 @@ function cadastrarCliente() {
     });
     salvarDados('clientes.json', clientesExistentes);
     limpar();
-    console.log(chalk.green('Cliente cadastrado com sucesso!'))
+    console.log(chalk.green('Cliente cadastrado com sucesso!\n'))
     Menus();
 }
 
@@ -145,7 +143,7 @@ function listarClientes() {
 
 function buscarCliente() {
     limpar();
-    console.log('===Buscar Clientes===');
+    console.log('===Buscar Clientes===\n');
     const buscar_nome = readline.question('Nome que deseja buscar: ').trim();
 
     let nomes_existentes = [];
@@ -180,40 +178,30 @@ function buscarCliente() {
 function removerCliente() {
     limpar();
     let clientesExistentes = carregarDados('clientes.json');
-    console.log('=== Remover Clientes ===');
+    console.log('=== Remover Clientes ===\n');
 
     if (clientesExistentes.length === 0) {
-        limpar();
-        console.log(chalk.red('Não há nenhum cliente cadastrado!'));
+        console.log(chalk.red('Não há nenhum cliente cadastrado!\n'));
         return Menus();
     }
 
     inquirer
         .prompt([
             {
-                name: 'remover',
+                name: 'indice',
                 type: 'list',
-                message: 'Escolha qual cliente você deseja remover:',
-                choices: clientesExistentes.map((cliente) => cliente.Nome_Cliente),
+                message: 'Escolha qual cliente deseja remover:',
+                choices: clientesExistentes.map((cliente, index) => ({
+                    name: `${cliente.Nome_Cliente} | ${cliente.Email_Cliente} | ${cliente.Numero_Cliente}`,
+                    value: index
+                })),
             }
         ])
         .then((answers) => {
-            const clienteExiste = clientesExistentes.some(
-                (cliente) => cliente.Nome_Cliente === answers.remover
-            );
-
-            if (clienteExiste) {
-                clientesExistentes = clientesExistentes.filter(
-                    (cliente) => cliente.Nome_Cliente !== answers.remover
-                );
-                limpar();
-                fs.writeFileSync('clientes.json', JSON.stringify(clientesExistentes, null, 2), 'utf8');
-                console.log(chalk.green(`Cliente "${answers.remover}" removido com sucesso!`));
-            } else {
-                limpar();
-                console.log(chalk.red('Cliente não encontrado!'));
-            }
-
+            const removido = clientesExistentes.splice(answers.indice, 1);
+            salvarDados('clientes.json', clientesExistentes);
+            limpar();
+            console.log(chalk.green(`Cliente removido com sucesso: ${removido[0].Nome_Cliente}\n`));
             Menus();
         })
         .catch((error) => {
@@ -222,5 +210,6 @@ function removerCliente() {
             Menus();
         });
 }
+
 
 Menus();
